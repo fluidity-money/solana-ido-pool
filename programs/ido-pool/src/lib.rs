@@ -3,9 +3,10 @@
 // #![warn(clippy::all)]
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Burn, CloseAccount, Mint, MintTo, Token, TokenAccount, Transfer};
+use anchor_spl::token::{self, Burn, CloseAccount, Mint, MintTo, Token, TokenAccount, Transfer, FreezeAccount, ThawAccount};
 
 use std::ops::Deref;
+
 
 declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
 
@@ -63,6 +64,21 @@ pub mod ido_pool {
     #[access_control(unrestricted_phase(&ctx.accounts.ido_account))]
     pub fn init_user_redeemable(ctx: Context<InitUserRedeemable>) -> ProgramResult {
         msg!("INIT USER REDEEMABLE");
+        let ido_name = ctx.accounts.ido_account.ido_name.as_ref();
+        let seeds = &[
+            ido_name.trim_ascii_whitespace(),
+            &[ctx.accounts.ido_account.bumps.ido_account],
+        ];
+        let signer = &[&seeds[..]];
+        let cpi_accounts = FreezeAccount {
+            account: ctx.accounts.user_redeemable.to_account_info(),
+            authority: ctx.accounts.ido_account.to_account_info(),
+            mint: ctx.accounts.redeemable_mint.to_account_info(),
+        };
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+        token::freeze_account(cpi_ctx)?;
+
         Ok(())
     }
 
@@ -94,6 +110,17 @@ pub mod ido_pool {
             &[ctx.accounts.ido_account.bumps.ido_account],
         ];
         let signer = &[&seeds[..]];
+
+        // thaw the user's account
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_accounts = ThawAccount {
+            account: ctx.accounts.user_redeemable.to_account_info(),
+            mint: ctx.accounts.redeemable_mint.to_account_info(),
+            authority: ctx.accounts.ido_account.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+        token::thaw_account(cpi_ctx)?;
+
         let cpi_accounts = MintTo {
             mint: ctx.accounts.redeemable_mint.to_account_info(),
             to: ctx.accounts.user_redeemable.to_account_info(),
@@ -102,6 +129,16 @@ pub mod ido_pool {
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
         token::mint_to(cpi_ctx, amount)?;
+
+        // freeze the user's account again
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_accounts = FreezeAccount {
+            account: ctx.accounts.user_redeemable.to_account_info(),
+            mint: ctx.accounts.redeemable_mint.to_account_info(),
+            authority: ctx.accounts.ido_account.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+        token::freeze_account(cpi_ctx)?;
 
         Ok(())
     }
@@ -131,6 +168,16 @@ pub mod ido_pool {
         let signer = &[&seeds[..]];
 
         // Burn the user's redeemable tokens.
+        // thaw the user's account so we can burn from it
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_accounts = ThawAccount {
+            account: ctx.accounts.user_redeemable.to_account_info(),
+            mint: ctx.accounts.redeemable_mint.to_account_info(),
+            authority: ctx.accounts.ido_account.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+        token::thaw_account(cpi_ctx)?;
+
         let cpi_accounts = Burn {
             mint: ctx.accounts.redeemable_mint.to_account_info(),
             to: ctx.accounts.user_redeemable.to_account_info(),
@@ -150,6 +197,29 @@ pub mod ido_pool {
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
         token::transfer(cpi_ctx, amount)?;
 
+        // Send rent back to user if account is empty
+        ctx.accounts.user_redeemable.reload()?;
+        if ctx.accounts.user_redeemable.amount == 0 {
+            let cpi_accounts = CloseAccount {
+                account: ctx.accounts.user_redeemable.to_account_info(),
+                destination: ctx.accounts.user_authority.to_account_info(),
+                authority: ctx.accounts.ido_account.to_account_info(),
+            };
+            let cpi_program = ctx.accounts.token_program.to_account_info();
+            let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+            token::close_account(cpi_ctx)?;
+        } else {
+            // otherwise, freeze the user's options account again
+            let cpi_program = ctx.accounts.token_program.to_account_info();
+            let cpi_accounts = FreezeAccount {
+                account: ctx.accounts.user_redeemable.to_account_info(),
+                mint: ctx.accounts.redeemable_mint.to_account_info(),
+                authority: ctx.accounts.ido_account.to_account_info(),
+            };
+            let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+            token::freeze_account(cpi_ctx)?;
+        }
+
         Ok(())
     }
 
@@ -159,7 +229,6 @@ pub mod ido_pool {
         amount: u64,
     ) -> ProgramResult {
         msg!("EXCHANGE REDEEMABLE FOR WATERMELON");
-        msg!(&format!("num: {}, denom: {}", ctx.accounts.ido_account.exchange_num, ctx.accounts.ido_account.exchange_denom));
         // While token::burn will check this, we prefer a verbose err msg.
         if ctx.accounts.user_redeemable.amount < amount {
             return Err(ErrorCode::LowRedeemable.into());
@@ -186,6 +255,16 @@ pub mod ido_pool {
         let signer = &[&seeds[..]];
 
         // Burn the user's redeemable tokens.
+        // thaw the user's account so we can burn from it
+        let cpi_program = ctx.accounts.token_program.to_account_info();
+        let cpi_accounts = ThawAccount {
+            account: ctx.accounts.user_redeemable.to_account_info(),
+            mint: ctx.accounts.redeemable_mint.to_account_info(),
+            authority: ctx.accounts.ido_account.to_account_info(),
+        };
+        let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+        token::thaw_account(cpi_ctx)?;
+
         let cpi_accounts = Burn {
             mint: ctx.accounts.redeemable_mint.to_account_info(),
             to: ctx.accounts.user_redeemable.to_account_info(),
@@ -216,6 +295,16 @@ pub mod ido_pool {
             let cpi_program = ctx.accounts.token_program.to_account_info();
             let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
             token::close_account(cpi_ctx)?;
+        } else {
+            // otherwise, freeze the user's options account again
+            let cpi_program = ctx.accounts.token_program.to_account_info();
+            let cpi_accounts = FreezeAccount {
+                account: ctx.accounts.user_redeemable.to_account_info(),
+                mint: ctx.accounts.redeemable_mint.to_account_info(),
+                authority: ctx.accounts.ido_account.to_account_info(),
+            };
+            let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
+            token::freeze_account(cpi_ctx)?;
         }
 
         Ok(())
@@ -317,6 +406,7 @@ pub struct InitializePool<'info> {
     #[account(init,
         mint::decimals = DECIMALS,
         mint::authority = ido_account,
+        mint::freeze_authority = ido_account,
         seeds = [ido_name.as_bytes(), b"redeemable_mint".as_ref()],
         bump = bumps.redeemable_mint,
         payer = ido_authority)]
