@@ -62,7 +62,7 @@ describe("ido-pool", () => {
     assert.ok(idoAuthority_watermelon_account.amount.eq(watermelonIdoAmount));
   });
 
-  // These are all variables the client will need to create in order to 
+  // These are all variables the client will need to create in order to
   // initialize the IDO pool
   let idoTimes;
   let idoName = "test_ido";
@@ -426,6 +426,20 @@ describe("ido-pool", () => {
       program.programId
     );
 
+    const exchangeNum = new anchor.BN(2);
+    const exchangeDenom = new anchor.BN(1);
+    // set the exchange rate
+    await program.rpc.updateExchangeRate(
+      exchangeNum,
+      exchangeDenom,
+      {
+        accounts: {
+          idoAuthority: provider.wallet.publicKey,
+          idoAccount,
+        },
+      },
+    );
+
     let firstUserRedeemable = firstDeposit.sub(firstWithdrawal);
     // TODO we've been lazy here and not used an ATA as we did with USDC
     userWatermelon = await createTokenAccount(
@@ -451,7 +465,10 @@ describe("ido-pool", () => {
     poolWatermelonAccount = await getTokenAccount(provider, poolWatermelon);
     let redeemedWatermelon = firstUserRedeemable
       .mul(watermelonIdoAmount)
-      .div(totalPoolUsdc);
+      .div(new anchor.BN(2))
+      .mul(exchangeNum)
+      .div(totalPoolUsdc)
+      .div(exchangeDenom);
     let remainingWatermelon = watermelonIdoAmount.sub(redeemedWatermelon);
     assert.ok(poolWatermelonAccount.amount.eq(remainingWatermelon));
     userWatermelonAccount = await getTokenAccount(provider, userWatermelon);
@@ -481,11 +498,27 @@ describe("ido-pool", () => {
       program.programId
     );
 
+    const exchangeNum = new anchor.BN(1);
+    const exchangeDenom = new anchor.BN(2);
+    // set the exchange rate
+    await program.rpc.updateExchangeRate(
+      exchangeNum,
+      exchangeDenom,
+      {
+        accounts: {
+          idoAuthority: provider.wallet.publicKey,
+          idoAccount,
+        },
+      },
+    );
     secondUserWatermelon = await createTokenAccount(
       provider,
       watermelonMint,
       secondUserKeypair.publicKey
     );
+
+    poolWatermelonAccount = await getTokenAccount(provider, poolWatermelon);
+    const initialWatermelonAmount = poolWatermelonAccount.amount;
 
     await program.rpc.exchangeRedeemableForWatermelon(secondDeposit, {
       accounts: {
@@ -501,8 +534,25 @@ describe("ido-pool", () => {
       },
     });
 
+
+    let redeemedWatermelon = secondDeposit
+      .mul(watermelonIdoAmount)
+      .div(new anchor.BN(2))
+      .mul(exchangeNum)
+      .div(totalPoolUsdc)
+      .div(exchangeDenom);
+
     poolWatermelonAccount = await getTokenAccount(provider, poolWatermelon);
-    assert.ok(poolWatermelonAccount.amount.eq(new anchor.BN(0)));
+
+    // the current implementation bases the gov tokens received off of /current/ pool stats, not original
+    // so this can be off by a little bit
+    let remainingWatermelon = initialWatermelonAmount.sub(redeemedWatermelon);
+    let remainingDiff = remainingWatermelon.sub(poolWatermelonAccount.amount).abs();
+    assert.ok(remainingDiff.lten(1));
+
+    userWatermelonAccount = await getTokenAccount(provider, secondUserWatermelon);
+    let holdingsDiff = userWatermelonAccount.amount.sub(redeemedWatermelon).abs();
+    assert.ok(holdingsDiff.lten(2));
   });
 
   it("Withdraws total USDC from pool account", async () => {

@@ -44,6 +44,9 @@ pub mod ido_pool {
         ido_account.num_ido_tokens = num_ido_tokens;
         ido_account.ido_times = ido_times;
 
+        ido_account.exchange_num = 1;
+        ido_account.exchange_denom = 2;
+
         // Transfer Watermelon from ido_authority to pool account.
         let cpi_accounts = Transfer {
             from: ctx.accounts.ido_authority_watermelon.to_account_info(),
@@ -156,6 +159,7 @@ pub mod ido_pool {
         amount: u64,
     ) -> ProgramResult {
         msg!("EXCHANGE REDEEMABLE FOR WATERMELON");
+        msg!(&format!("num: {}, denom: {}", ctx.accounts.ido_account.exchange_num, ctx.accounts.ido_account.exchange_denom));
         // While token::burn will check this, we prefer a verbose err msg.
         if ctx.accounts.user_redeemable.amount < amount {
             return Err(ErrorCode::LowRedeemable.into());
@@ -165,7 +169,13 @@ pub mod ido_pool {
         let watermelon_amount = (amount as u128)
             .checked_mul(ctx.accounts.pool_watermelon.amount as u128)
             .unwrap()
+            .checked_div(2)
+            .unwrap()
+            .checked_mul(ctx.accounts.ido_account.exchange_num as u128)
+            .unwrap()
             .checked_div(ctx.accounts.redeemable_mint.supply as u128)
+            .unwrap()
+            .checked_div(ctx.accounts.ido_account.exchange_denom as u128)
             .unwrap();
 
         let ido_name = ctx.accounts.ido_account.ido_name.as_ref();
@@ -270,6 +280,15 @@ pub mod ido_pool {
             let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
             token::close_account(cpi_ctx)?;
         }
+
+        Ok(())
+    }
+
+    pub fn update_exchange_rate(ctx: Context<UpdateExchangeRate>, num: u64, denom: u64) -> ProgramResult {
+        msg!("UPDATING EXCHANGE RATE");
+        let ido = &mut ctx.accounts.ido_account;
+        ido.exchange_num = num;
+        ido.exchange_denom = denom;
 
         Ok(())
     }
@@ -535,6 +554,13 @@ pub struct WithdrawFromEscrow<'info> {
     pub token_program: Program<'info, Token>,
 }
 
+#[derive(Accounts)]
+pub struct UpdateExchangeRate<'info> {
+    pub ido_authority: Signer<'info>,
+    #[account(mut, has_one = ido_authority)]
+    pub ido_account: Account<'info, IdoAccount>,
+}
+
 #[account]
 #[derive(Default)]
 pub struct IdoAccount {
@@ -547,6 +573,9 @@ pub struct IdoAccount {
     pub watermelon_mint: Pubkey,
     pub pool_usdc: Pubkey,
     pub pool_watermelon: Pubkey,
+
+    pub exchange_num: u64,
+    pub exchange_denom: u64,
 
     pub num_ido_tokens: u64,
     pub ido_times: IdoTimes,
