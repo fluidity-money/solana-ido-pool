@@ -544,15 +544,12 @@ describe("ido-pool", () => {
 
     poolWatermelonAccount = await getTokenAccount(provider, poolWatermelon);
 
-    // the current implementation bases the gov tokens received off of /current/ pool stats, not original
-    // so this can be off by a little bit
     let remainingWatermelon = initialWatermelonAmount.sub(redeemedWatermelon);
-    let remainingDiff = remainingWatermelon.sub(poolWatermelonAccount.amount).abs();
-    assert.ok(remainingDiff.lten(1));
+    assert.ok(remainingWatermelon.eq(poolWatermelonAccount.amount));
 
     userWatermelonAccount = await getTokenAccount(provider, secondUserWatermelon);
     let holdingsDiff = userWatermelonAccount.amount.sub(redeemedWatermelon).abs();
-    assert.ok(holdingsDiff.lten(2));
+    assert.ok(userWatermelonAccount.amount.eq(redeemedWatermelon));
   });
 
   it("Withdraws total USDC from pool account", async () => {

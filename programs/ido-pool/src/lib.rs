@@ -42,6 +42,7 @@ pub mod ido_pool {
         ido_account.pool_usdc = ctx.accounts.pool_usdc.key();
         ido_account.pool_watermelon = ctx.accounts.pool_watermelon.key();
 
+        ido_account.num_options = 0;
         ido_account.num_ido_tokens = num_ido_tokens;
         ido_account.ido_times = ido_times;
 
@@ -140,6 +141,8 @@ pub mod ido_pool {
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
         token::freeze_account(cpi_ctx)?;
 
+        ctx.accounts.ido_account.num_options += amount;
+
         Ok(())
     }
 
@@ -220,6 +223,8 @@ pub mod ido_pool {
             token::freeze_account(cpi_ctx)?;
         }
 
+        ctx.accounts.ido_account.num_options -= amount;
+
         Ok(())
     }
 
@@ -236,13 +241,13 @@ pub mod ido_pool {
 
         // Calculate watermelon tokens due.
         let watermelon_amount = (amount as u128)
-            .checked_mul(ctx.accounts.pool_watermelon.amount as u128)
+            .checked_mul(ctx.accounts.ido_account.num_ido_tokens as u128)
             .unwrap()
             .checked_div(2)
             .unwrap()
             .checked_mul(ctx.accounts.ido_account.exchange_num as u128)
             .unwrap()
-            .checked_div(ctx.accounts.redeemable_mint.supply as u128)
+            .checked_div(ctx.accounts.ido_account.num_options as u128)
             .unwrap()
             .checked_div(ctx.accounts.ido_account.exchange_denom as u128)
             .unwrap();
@@ -306,6 +311,8 @@ pub mod ido_pool {
             let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
             token::freeze_account(cpi_ctx)?;
         }
+        // ido_account.num_options represents the _total_ number of options given out, so we don't decrement
+        // it here
 
         Ok(())
     }
@@ -476,7 +483,8 @@ pub struct ExchangeUsdcForRedeemable<'info> {
         bump)]
     pub user_redeemable: Box<Account<'info, TokenAccount>>,
     // IDO Accounts
-    #[account(seeds = [ido_account.ido_name.as_ref().trim_ascii_whitespace()],
+    #[account(mut,
+        seeds = [ido_account.ido_name.as_ref().trim_ascii_whitespace()],
         bump = ido_account.bumps.ido_account,
         has_one = usdc_mint)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
@@ -535,7 +543,8 @@ pub struct ExchangeRedeemableForUsdc<'info> {
         bump)]
     pub user_redeemable: Box<Account<'info, TokenAccount>>,
     // IDO Accounts
-    #[account(seeds = [ido_account.ido_name.as_ref().trim_ascii_whitespace()],
+    #[account(mut,
+        seeds = [ido_account.ido_name.as_ref().trim_ascii_whitespace()],
         bump = ido_account.bumps.ido_account,
         has_one = usdc_mint)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
@@ -573,7 +582,8 @@ pub struct ExchangeRedeemableForWatermelon<'info> {
         bump)]
     pub user_redeemable: Box<Account<'info, TokenAccount>>,
     // IDO Accounts
-    #[account(seeds = [ido_account.ido_name.as_ref().trim_ascii_whitespace()],
+    #[account(mut,
+        seeds = [ido_account.ido_name.as_ref().trim_ascii_whitespace()],
         bump = ido_account.bumps.ido_account,
         has_one = watermelon_mint)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
@@ -667,6 +677,7 @@ pub struct IdoAccount {
     pub exchange_num: u64,
     pub exchange_denom: u64,
 
+    pub num_options: u64,
     pub num_ido_tokens: u64,
     pub ido_times: IdoTimes,
 }
