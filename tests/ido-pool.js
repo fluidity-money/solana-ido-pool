@@ -231,7 +231,7 @@ describe("ido-pool", () => {
 
   // 23 usdc
   const secondDeposit = new anchor.BN(23_000_672);
-  let totalPoolUsdc, secondUserKeypair, secondUserUsdc;
+  let totalPoolUsdc, totalOptions, secondUserKeypair, secondUserUsdc;
 
   it("Exchanges a second users USDC for redeemable tokens", async () => {
     const [idoAccount] = await anchor.web3.PublicKey.findProgramAddress(
@@ -327,12 +327,15 @@ describe("ido-pool", () => {
     assert.ok(secondUserRedeemableAccount.amount.eq(secondDeposit));
 
     totalPoolUsdc = firstDeposit.add(secondDeposit);
+    totalOptions = firstDeposit.add(secondDeposit);
     poolUsdcAccount = await getTokenAccount(provider, poolUsdc);
     assert.ok(poolUsdcAccount.amount.eq(totalPoolUsdc));
 
   });
 
   const firstWithdrawal = new anchor.BN(2_000_000);
+  // 95%
+  const firstWithdrawalReturn = firstWithdrawal.sub(firstWithdrawal.divn(20));
 
   it("Exchanges user Redeemable tokens for USDC", async () => {
     const [idoAccount] = await anchor.web3.PublicKey.findProgramAddress(
@@ -391,11 +394,12 @@ describe("ido-pool", () => {
       ]
     });
 
-    totalPoolUsdc = totalPoolUsdc.sub(firstWithdrawal);
+    totalPoolUsdc = totalPoolUsdc.sub(firstWithdrawalReturn);
+    totalOptions = totalOptions.sub(firstWithdrawal);
     poolUsdcAccount = await getTokenAccount(provider, poolUsdc);
     assert.ok(poolUsdcAccount.amount.eq(totalPoolUsdc));
     escrowUsdcAccount = await getTokenAccount(provider, escrowUsdc);
-    assert.ok(escrowUsdcAccount.amount.eq(firstWithdrawal));
+    assert.ok(escrowUsdcAccount.amount.eq(firstWithdrawalReturn));
   });
 
   it("Exchanges user Redeemable tokens for watermelon", async () => {
@@ -467,7 +471,7 @@ describe("ido-pool", () => {
       .mul(watermelonIdoAmount)
       .div(new anchor.BN(2))
       .mul(exchangeNum)
-      .div(totalPoolUsdc)
+      .div(totalOptions)
       .div(exchangeDenom);
     let remainingWatermelon = watermelonIdoAmount.sub(redeemedWatermelon);
     assert.ok(poolWatermelonAccount.amount.eq(remainingWatermelon));
@@ -539,7 +543,7 @@ describe("ido-pool", () => {
       .mul(watermelonIdoAmount)
       .div(new anchor.BN(2))
       .mul(exchangeNum)
-      .div(totalPoolUsdc)
+      .div(totalOptions)
       .div(exchangeDenom);
 
     poolWatermelonAccount = await getTokenAccount(provider, poolWatermelon);
@@ -599,7 +603,7 @@ describe("ido-pool", () => {
       program.programId
     );
 
-    await program.rpc.withdrawFromEscrow(firstWithdrawal, {
+    await program.rpc.withdrawFromEscrow(firstWithdrawalReturn, {
       accounts: {
         payer: provider.wallet.publicKey,
         userAuthority: provider.wallet.publicKey,
@@ -612,7 +616,7 @@ describe("ido-pool", () => {
     });
 
     userUsdcAccount = await getTokenAccount(provider, userUsdc);
-    assert.ok(userUsdcAccount.amount.eq(firstWithdrawal));
+    assert.ok(userUsdcAccount.amount.eq(firstWithdrawalReturn));
   });
 
 

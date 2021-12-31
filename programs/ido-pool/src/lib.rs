@@ -191,6 +191,8 @@ pub mod ido_pool {
         token::burn(cpi_ctx, amount)?;
 
         // Transfer USDC from pool account to the user's escrow account.
+        // take our 5% tax
+        let usdc_amount = amount.checked_sub(amount.checked_div(20).unwrap()).unwrap();
         let cpi_accounts = Transfer {
             from: ctx.accounts.pool_usdc.to_account_info(),
             to: ctx.accounts.escrow_usdc.to_account_info(),
@@ -198,7 +200,7 @@ pub mod ido_pool {
         };
         let cpi_program = ctx.accounts.token_program.to_account_info();
         let cpi_ctx = CpiContext::new_with_signer(cpi_program, cpi_accounts, signer);
-        token::transfer(cpi_ctx, amount)?;
+        token::transfer(cpi_ctx, usdc_amount)?;
 
         // Send rent back to user if account is empty
         ctx.accounts.user_redeemable.reload()?;
