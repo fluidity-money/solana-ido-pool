@@ -1,0 +1,16 @@
+{
+  "compilerOptions": {
+    "incremental": true,
+
+    "target": "es2016",
+    "lib": ["ESNext"],
+    "noEmit": true,
+    "downlevelIteration": true,
+    "noEmitHelpers": false,
+    "moduleResolution": "node",
+    "esModuleInterop": true,
+    "forceConsistentCasingInFileNames": true,
+    "strict": true,
+    "skipLibCheck": true
+  }
+}
