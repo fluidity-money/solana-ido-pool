@@ -1,5 +1,12 @@
 #!/bin/sh -e
 
+if [ -f "deployed" ]; then
+  echo "it looks like the contracts have already been deployed!"
+  echo "redeploying now will change addresses"
+  echo "bring down your volumes with 'docker-compose down' then bring them back up to reset chain state and redeploy"
+  exit 0
+fi
+
 echo "Waiting for RPC connction..."
 until [ "$(curl $FLU_IDO_RPC_ADDR/health)" = "ok" ]; do
   echo "."
@@ -41,3 +48,5 @@ cd scripts &&
   FLU_IDO_END_IDO=$(expr $(date +%s) + $FLU_IDO_IDO_TIME) \
   FLU_IDO_END_ESCROW=$(expr $(date +%s) + $FLU_IDO_ESCROW_TIME) \
   npx ts-node deploy.ts
+
+touch ../deployed
