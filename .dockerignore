@@ -1,0 +1,7 @@
+*
+!programs/
+!Cargo.*
+!docker/
+!scripts/
+scripts/node_modules
+!target/deploy

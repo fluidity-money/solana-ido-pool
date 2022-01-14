@@ -29,7 +29,7 @@ const endIdo = mustEnv(`FLU_IDO_END_IDO`, bnFromString);
 const endEscrow = mustEnv(`FLU_IDO_END_ESCROW`, bnFromString);
 
 const initializePool = async () => {
-  const provider = anchor.Provider.local(process.env.FLU_SOLANA_RPC_ADDR);
+  const provider = anchor.Provider.local(process.env.FLU_IDO_RPC_ADDR);
   const program = new anchor.Program(ido_pool_idl, ido_pool_idl.metadata.address, provider)
 
   const idoAuthority = provider.wallet.publicKey;

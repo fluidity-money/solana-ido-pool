@@ -1,0 +1,24 @@
+---
+version: '3'
+
+services:
+  # validator runs a local solana network
+  validator:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: validator
+    ports:
+      - 8899:8899
+      - 8900:8900
+
+  # contracts deployes the IDO contracts
+  contracts:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: contracts
+    environment:
+      - FLU_IDO_RPC_ADDR=http://validator:8899
+      - FLU_IDO_AUTH_PATH=./docker/test_signer.json
+      - FLU_GOV_AMOUNT=2000

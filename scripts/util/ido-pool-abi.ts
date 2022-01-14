@@ -621,6 +621,6 @@ export const idl = {
     }
   ],
   "metadata": {
-    "address": "BxgywxGo1zpsYgJfNorLUZxYzNfmPBB3BiYfP3rgQTKa"
+    "address": "v8N37RZ3w484F5XXnxeQnKEoARLZaqtJ31ibYwxkCRM"
   }
 } as const;

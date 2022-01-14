@@ -3,12 +3,23 @@
 // #![warn(clippy::all)]
 
 use anchor_lang::prelude::*;
-use anchor_spl::token::{self, Burn, CloseAccount, Mint, MintTo, Token, TokenAccount, Transfer, FreezeAccount, ThawAccount};
+use anchor_spl::token::{
+    self,
+    Burn,
+    CloseAccount,
+    Mint,
+    MintTo,
+    Token,
+    TokenAccount,
+    Transfer,
+    FreezeAccount,
+    ThawAccount,
+};
 
 use std::ops::Deref;
 
-
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+// the pubkey of the program, this needs to match or else no contract calls work
+declare_id!("v8N37RZ3w484F5XXnxeQnKEoARLZaqtJ31ibYwxkCRM");
 
 const DECIMALS: u8 = 6;
 
@@ -242,6 +253,7 @@ pub mod ido_pool {
         }
 
         // Calculate watermelon tokens due.
+        // amount * (exchange rate) * (total gov tokens / total options) * (1/2)
         let watermelon_amount = (amount as u128)
             .checked_mul(ctx.accounts.ido_account.num_ido_tokens as u128)
             .unwrap()
@@ -566,6 +578,7 @@ pub struct ExchangeRedeemableForUsdc<'info> {
 
 #[derive(Accounts)]
 pub struct ExchangeRedeemableForWatermelon<'info> {
+    // TODO DON'T ALLOW THIS THIS IS BAD
     // User does not have to sign, this allows anyone to redeem on their behalf
     // and prevents forgotten / leftover redeemable tokens in the IDO pool.
     pub payer: Signer<'info>,
