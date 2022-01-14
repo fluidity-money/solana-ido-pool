@@ -22,3 +22,7 @@ services:
       - FLU_IDO_RPC_ADDR=http://validator:8899
       - FLU_IDO_AUTH_PATH=./docker/test_signer.json
       - FLU_GOV_AMOUNT=2000
+      - FLU_IDO_START_TIME=${FLU_IDO_START_TIME:-60}
+      - FLU_IDO_DEPOSIT_TIME=${FLU_IDO_DEPOSIT_TIME:-120}
+      - FLU_IDO_IDO_TIME=${FLU_IDO_IDO_TIME:-180}
+      - FLU_IDO_ESCROW_TIME=${FLU_IDO_ESCROW_TIME:-240}

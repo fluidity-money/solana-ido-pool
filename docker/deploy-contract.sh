@@ -36,8 +36,8 @@ cd scripts &&
   FLU_IDO_WATERMELON_AMOUNT=$FLU_GOV_AMOUNT \
   ANCHOR_WALLET=../docker/test_signer.json \
   FLU_IDO_NAME="test_ido3" \
-  FLU_IDO_START=$(expr $(date +%s) + 120) \
-  FLU_IDO_END_DEPOSITS=$(expr $(date +%s) + 180) \
-  FLU_IDO_END_IDO=$(expr $(date +%s) + 240) \
-  FLU_IDO_END_ESCROW=$(expr $(date +%s) + 300) \
+  FLU_IDO_START=$(expr $(date +%s) + $FLU_IDO_START_TIME) \
+  FLU_IDO_END_DEPOSITS=$(expr $(date +%s) + $FLU_IDO_DEPOSIT_TIME) \
+  FLU_IDO_END_IDO=$(expr $(date +%s) + $FLU_IDO_IDO_TIME) \
+  FLU_IDO_END_ESCROW=$(expr $(date +%s) + $FLU_IDO_ESCROW_TIME) \
   npx ts-node deploy.ts
