@@ -578,13 +578,9 @@ pub struct ExchangeRedeemableForUsdc<'info> {
 
 #[derive(Accounts)]
 pub struct ExchangeRedeemableForWatermelon<'info> {
-    // TODO DON'T ALLOW THIS THIS IS BAD
-    // User does not have to sign, this allows anyone to redeem on their behalf
-    // and prevents forgotten / leftover redeemable tokens in the IDO pool.
-    pub payer: Signer<'info>,
     // User Accounts
     #[account(mut)] // Sol rent from empty redeemable account is refunded to the user
-    pub user_authority: AccountInfo<'info>,
+    pub user_authority: Signer<'info>,
     // TODO replace with ATA constraints
     #[account(mut,
         constraint = user_watermelon.owner == user_authority.key(),
