@@ -1,5 +1,5 @@
 
-# Fluidity Worker
+# Fluidity Solana IDO Pool
 
 Fluidity is a stablecoin for people who can’t afford to leave their
 money idle generating interest. **Fluidity rewards users when they actually
