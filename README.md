@@ -42,26 +42,3 @@ The repo contains the IDO contract that ** more better words **
 
 - `docker build .`	
 	
-
-// this gets accessed when we connect the provider but with a much worse error message
-if (!process.env[`ANCHOR_WALLET`]) throw new Error(`Env ANCHOR_WALLET not found, set it to the path of your wallet!`);
-
-// mint account for usdc
-const idoUsdcMint = mustEnv(`FLU_IDO_USDC_MINT`, pkFromString);
-
-// mint account for gov tokens
-const idoWatermelonMint = mustEnv(`FLU_IDO_WATERMELON_MINT`, pkFromString);
-
-// account that holds gov tokens we transfer from, must be owned by our wallet
-const idoWatermelonSource = mustEnv(`FLU_IDO_WATERMELON_SOURCE`, pkFromString);
-
-const idoName = process.env[`FLU_IDO_NAME`]!;
-if (!idoName) throw new Error(`Env FLU_IDO_NAME not set!`);
-if (idoName.length > 10) throw new Error(`Ido name ${idoName} too long, must be <= 10 chars!`);
-
-const idoWatermelonAmount = mustEnv(`FLU_IDO_WATERMELON_AMOUNT`, bnFromString);
-
-const startIdo = mustEnv(`FLU_IDO_START`, bnFromString);
-const endDeposits = mustEnv(`FLU_IDO_END_DEPOSITS`, bnFromString);
-const endIdo = mustEnv(`FLU_IDO_END_IDO`, bnFromString);
-const endEscrow = mustEnv(`FLU_IDO_END_ESCROW`, bnFromString);
