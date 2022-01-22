@@ -5,13 +5,7 @@ Fluidity is a stablecoin for people who can’t afford to leave their
 money idle generating interest. **Fluidity rewards users when they actually
 use it**.
 
-This codebase contains the offchain worker implementation for Fluidity.
-
-It takes messages relayed from the upstream server operated by Fluidity
-fluidity-random, scans for winning transactions and calls the contract
-when a winner is seen with the transaction and a merkle proof.
-
-The repo contains the IDO contract ** better words **  
+The repo contains the IDO contract that ** more better words **  
 
 
 ## Environment Variables (Solana)
