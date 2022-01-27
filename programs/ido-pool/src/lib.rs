@@ -308,7 +308,7 @@ pub mod ido_pool {
         if ctx.accounts.user_redeemable.amount == 0 {
             let cpi_accounts = CloseAccount {
                 account: ctx.accounts.user_redeemable.to_account_info(),
-                destination: ctx.accounts.user_authority.clone(),
+                destination: ctx.accounts.user_authority.to_account_info(),
                 authority: ctx.accounts.ido_account.to_account_info(),
             };
             let cpi_program = ctx.accounts.token_program.to_account_info();
@@ -563,7 +563,6 @@ pub struct ExchangeRedeemableForUsdc<'info> {
         has_one = usdc_mint)]
     pub ido_account: Box<Account<'info, IdoAccount>>,
     pub usdc_mint: Box<Account<'info, Mint>>,
-    pub watermelon_mint: Box<Account<'info, Mint>>,
     #[account(mut,
         seeds = [ido_account.ido_name.as_ref().trim_ascii_whitespace(), b"redeemable_mint"],
         bump = ido_account.bumps.redeemable_mint)]
